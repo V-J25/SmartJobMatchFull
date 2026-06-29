@@ -48,7 +48,12 @@ function Login() {
               />
             </div>
             <div>
-              <label className='text-xs font-bold uppercase text-slate-500' htmlFor='password'>Password</label>
+              <div className='flex justify-between items-center'>
+                <label className='text-xs font-bold uppercase text-slate-500' htmlFor='password'>Password</label>
+                <Link to='/forgot-password' className='text-xs font-semibold text-slate-600 hover:text-slate-950 hover:underline'>
+                  Forgot Password?
+                </Link>
+              </div>
               <input
                 id='password'
                 type='password'

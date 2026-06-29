@@ -368,7 +368,7 @@ export const jobsApi = {
       }
 
       try {
-        const url = new URL('https://jsearch.p.rapidapi.com/search')
+        const url = new URL('https://jsearch.p.rapidapi.com/search-v2')
         url.searchParams.append('query', query)
         url.searchParams.append('page', '1')
         url.searchParams.append('num_pages', '10')
@@ -398,7 +398,13 @@ export const jobsApi = {
         }
 
         const json = await response.json()
-        const jobs = deduplicateJobs((json.data || []).map(mapJSearchToJob))
+        let jobsArray = []
+        if (Array.isArray(json.data)) {
+          jobsArray = json.data
+        } else if (json.data && Array.isArray(json.data.jobs)) {
+          jobsArray = json.data.jobs
+        }
+        const jobs = deduplicateJobs(jobsArray.map(mapJSearchToJob))
         return this.localFilter(jobs, filters)
       } catch (directError) {
         throw new Error(`Unable to load live jobs: ${directError.message}`)

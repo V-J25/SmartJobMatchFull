@@ -1,4 +1,6 @@
+import "dotenv/config";
 import express from "express";
+import authRouter from "./routes/authRoutes.js";
 
 const vpp = express();
 
@@ -42,7 +44,7 @@ vpp.get("/api/jobs", async (req, res) => {
       query = "jobs in India";
     }
 
-    const url = new URL("https://jsearch.p.rapidapi.com/search");
+    const url = new URL("https://jsearch.p.rapidapi.com/search-v2");
     url.searchParams.append("query", query);
     url.searchParams.append("page", "1");
     url.searchParams.append("num_pages", "10");
@@ -77,9 +79,19 @@ vpp.get("/api/jobs", async (req, res) => {
     }
 
     const data = await response.json();
+    let jobsArray = [];
+    if (Array.isArray(data.data)) {
+      jobsArray = data.data;
+    } else if (data.data && Array.isArray(data.data.jobs)) {
+      jobsArray = data.data.jobs;
+    }
+
     const uniqueJobs = Array.from(
       new Map(
-        (data.data || []).map((job, index) => [job.job_id || `missing-${index}`, job]),
+        jobsArray.map((job, index) => [
+          job.job_id || `missing-${index}`,
+          job,
+        ]),
       ).values(),
     );
 
@@ -91,5 +103,8 @@ vpp.get("/api/jobs", async (req, res) => {
       .json({ error: "Failed to fetch jobs from third-party API." });
   }
 });
+
+// Mount authentication router
+vpp.use("/api/auth", authRouter);
 
 export const app = vpp;

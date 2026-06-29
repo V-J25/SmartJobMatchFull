@@ -10,6 +10,8 @@ import Profile from '../pages/Profile.jsx'
 import SavedJobs from '../pages/SavedJobs.jsx'
 import Signup from '../pages/Signup.jsx'
 import Tracker from '../pages/Tracker.jsx'
+import ForgotPassword from '../pages/ForgotPassword.jsx'
+import ResetPassword from '../pages/ResetPassword.jsx'
 import { AuthContext } from '../context/authContextValue.js'
 import Loader from '../components/Loader.jsx'
 
@@ -59,6 +61,8 @@ function AppRoutes() {
       />
       <Route path='/login' element={<Login />} />
       <Route path='/signup' element={<Signup />} />
+      <Route path='/forgot-password' element={<ForgotPassword />} />
+      <Route path='/reset-password' element={<ResetPassword />} />
       <Route path='*' element={<Home />} />
     </Routes>
   )
