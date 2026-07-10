@@ -54,10 +54,16 @@ router.post("/forgot-password", async (req, res) => {
       });
 
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-      const resetLink = `${frontendUrl}/reset-password?token=${token}`;
-      console.log(`\n========================================\n[PASSWORD RESET] Request for: ${normalizedEmail}\nReset Link: ${resetLink}\n========================================\n`);
-    } else {
-      console.log(`\n========================================\n[PASSWORD RESET] Request for unregistered email: ${normalizedEmail}\n========================================\n`);
+      
+      // Trigger Supabase to send the password reset email directly
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: `${frontendUrl}/reset-password?token=${token}`,
+      });
+
+      if (resetError) {
+        console.error("Error triggering Supabase password reset email:", resetError);
+        return res.status(500).json({ error: "Failed to send password reset email" });
+      }
     }
 
     res.json({ message: "If the email is registered, a password reset link has been generated." });
