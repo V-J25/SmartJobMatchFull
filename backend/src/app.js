@@ -7,12 +7,15 @@ import jobRouter from "./routes/jobRoutes.js";
 const vpp = express();
 
 // Middleware
-vpp.use(express.json({ limit: '50mb' }));
-vpp.use(express.urlencoded({ limit: '50mb', extended: true }));
+vpp.use(express.json({ limit: "50mb" }));
+vpp.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // CORS Middleware to allow requests from the frontend (localhost:5173 / production domains)
 vpp.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Origin",
+    "https://smart-job-match-full.vercel.app",
+  );
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-RapidAPI-Key",
@@ -91,10 +94,7 @@ vpp.get("/api/external-jobs", async (req, res) => {
 
     const uniqueJobs = Array.from(
       new Map(
-        jobsArray.map((job, index) => [
-          job.job_id || `missing-${index}`,
-          job,
-        ]),
+        jobsArray.map((job, index) => [job.job_id || `missing-${index}`, job]),
       ).values(),
     );
 
