@@ -1,15 +1,26 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import { AuthContext } from '../context/authContextValue.js'
+import { authApi } from '../api/authApi'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useContext(AuthContext)
+  const { login, user } = useContext(AuthContext)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'recruiter') {
+        navigate('/recruiter/dashboard')
+      } else {
+        navigate('/dashboard')
+      }
+    }
+  }, [user, navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -19,7 +30,7 @@ function Login() {
     setError('')
     try {
       await login(email.trim(), password)
-      navigate('/dashboard')
+      // Navigation is handled by useEffect when user context updates
     } catch (err) {
       setError(err.message || 'Failed to login')
     } finally {

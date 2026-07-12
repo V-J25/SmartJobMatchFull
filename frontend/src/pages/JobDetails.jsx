@@ -1,6 +1,9 @@
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { useState, useContext } from 'react'
 import Navbar from '../components/Navbar.jsx'
-import jobs from '../data/jobs.js'
+import ApplyModal from '../components/ApplyModal.jsx'
+import { JobContext } from '../context/jobContextValue.js'
+import jobsData from '../data/jobs.js'
 
 const renderList = (items, fallback = 'Not specified') => {
   if (!items?.length) return <p className='mt-2 text-slate-600'>{fallback}</p>
@@ -14,7 +17,12 @@ const renderList = (items, fallback = 'Not specified') => {
 function JobDetails() {
   const { id } = useParams()
   const { state } = useLocation()
-  const job = state?.job ?? jobs.find((item) => String(item.id) === id)
+  const job = state?.job ?? jobsData.find((item) => String(item.id) === id)
+  const { appliedJobs, handleApplyJob } = useContext(JobContext)
+  const [showModal, setShowModal] = useState(false)
+  
+  const isApplied = appliedJobs?.some((item) => item.id === job?.id)
+  const isApplyDisabled = isApplied || job?.isExpired
 
   if (!job) {
     return (
@@ -78,22 +86,48 @@ function JobDetails() {
               )}
             </section>
           )}
-          {job.apply_url && (
-            <a
-              href={job.apply_url}
-              target='_blank'
-              rel='noreferrer'
-              onClick={(event) => job.isExpired && event.preventDefault()}
-              aria-disabled={job.isExpired}
+          {job.isPlatformJob ? (
+            <button
+              onClick={() => setShowModal(true)}
+              disabled={isApplyDisabled}
               className={`mt-6 inline-block rounded-md px-5 py-3 text-sm font-semibold text-white ${
-                job.isExpired ? 'cursor-not-allowed bg-emerald-300' : 'bg-emerald-600'
+                isApplyDisabled ? 'cursor-not-allowed bg-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700'
               }`}
             >
-              {job.isExpired ? 'Applications Closed' : 'Apply on company website'}
-            </a>
+              {job.isExpired ? 'Applications Closed' : isApplied ? 'Applied' : 'Apply Now'}
+            </button>
+          ) : (
+            job.apply_url && (
+              <a
+                href={job.apply_url}
+                target='_blank'
+                rel='noreferrer'
+                onClick={(event) => {
+                  if (job.isExpired) event.preventDefault()
+                  else handleApplyJob?.(job)
+                }}
+                aria-disabled={job.isExpired}
+                className={`mt-6 inline-block rounded-md px-5 py-3 text-sm font-semibold text-white ${
+                  job.isExpired ? 'cursor-not-allowed bg-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {job.isExpired ? 'Applications Closed' : isApplied ? 'Applied' : 'Apply on company website'}
+              </a>
+            )
           )}
         </article>
       </main>
+
+      {showModal && (
+        <ApplyModal 
+          job={job} 
+          onClose={() => setShowModal(false)} 
+          onSuccess={() => {
+            setShowModal(false)
+            handleApplyJob?.(job)
+          }} 
+        />
+      )}
     </div>
   )
 }

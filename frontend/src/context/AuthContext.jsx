@@ -9,12 +9,16 @@ function AuthProvider({ children }) {
 
   const fetchProfile = async (sessionUser) => {
     try {
-      const profile = await profileApi.getProfile(sessionUser.id)
+      const [profile, role] = await Promise.all([
+        profileApi.getProfile(sessionUser.id).catch(() => null),
+        authApi.getUserRole(sessionUser.id)
+      ])
       return {
         id: sessionUser.id,
         email: sessionUser.email,
         name: profile?.full_name || sessionUser.user_metadata?.full_name || 'Student',
         skills: profile?.skills || [],
+        role: sessionUser.user_metadata?.role || role || 'seeker',
       }
     } catch (err) {
       console.error('Error fetching user profile from database:', err)
@@ -23,6 +27,7 @@ function AuthProvider({ children }) {
         email: sessionUser.email,
         name: sessionUser.user_metadata?.full_name || 'Student',
         skills: [],
+        role: sessionUser.user_metadata?.role || 'seeker',
       }
     }
   }
@@ -76,8 +81,8 @@ function AuthProvider({ children }) {
     return await authApi.login(email, password)
   }
 
-  const signup = async (email, password, fullName) => {
-    return await authApi.signup(email, password, fullName)
+  const signup = async (email, password, fullName, role) => {
+    return await authApi.signup(email, password, fullName, role)
   }
 
   const logout = async () => {

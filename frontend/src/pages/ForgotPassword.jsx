@@ -25,7 +25,7 @@ function ForgotPassword() {
     setSuccess('')
     try {
       await authApi.forgotPassword(email.trim())
-      setSuccess('If the email is registered, a password reset link has been sent. Check your backend console for the link.')
+      setSuccess('If the email is registered, a password reset link has been sent.')
       setEmail('')
     } catch (err) {
       setError(err.message || 'Failed to request password reset')

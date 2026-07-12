@@ -1,19 +1,30 @@
 import { supabase } from './supabaseClient'
 
 export const authApi = {
-  async signup(email, password, fullName) {
+  async signup(email, password, fullName, role = 'seeker') {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
+          role: role,
         },
       },
     })
     if (error) throw error
+    
+    // Ensure the profile role is updated since DB triggers may default to 'seeker'
+    if (data?.user?.id) {
+      await supabase
+        .from('profiles')
+        .update({ role: role })
+        .eq('id', data.user.id)
+    }
+    
     return data
   },
+
 
   async login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -21,6 +32,15 @@ export const authApi = {
       password,
     })
     if (error) throw error
+    
+    // Auto-sync role on login to fix any DB default mismatched roles
+    if (data?.user?.id && data.user.user_metadata?.role) {
+      await supabase
+        .from('profiles')
+        .update({ role: data.user.user_metadata.role })
+        .eq('id', data.user.id)
+    }
+    
     return data
   },
 
@@ -35,49 +55,36 @@ export const authApi = {
     return session
   },
 
+  async getUserRole(userId) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+    if (error) return 'seeker' // fallback
+    return data.role
+  },
+
+
   onAuthStateChange(callback) {
     return supabase.auth.onAuthStateChange(callback)
   },
 
   async forgotPassword(email) {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    const response = await fetch(`${backendUrl}/api/auth/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     })
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to request password reset')
-    }
+
+    if (error) throw error
     return data
   },
 
-  async verifyResetToken(token) {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    const response = await fetch(`${backendUrl}/api/auth/verify-token?token=${encodeURIComponent(token)}`)
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.error || 'Invalid or expired reset token')
-    }
-    return data
-  },
-
-  async resetPassword(token, password) {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    const response = await fetch(`${backendUrl}/api/auth/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token, password }),
+  async resetPassword(password) {
+    const { data, error } = await supabase.auth.updateUser({
+      password,
     })
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to reset password')
-    }
+
+    if (error) throw error
     return data
   },
 }

@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import { AuthContext } from '../context/authContextValue.js'
@@ -9,8 +9,19 @@ function Signup() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signup } = useContext(AuthContext)
+  const [role, setRole] = useState('seeker')
+  const { signup, user } = useContext(AuthContext)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'recruiter') {
+        navigate('/recruiter/dashboard')
+      } else {
+        navigate('/profile')
+      }
+    }
+  }, [user, navigate])
 
   const handleSignup = async (event) => {
     event.preventDefault()
@@ -19,8 +30,8 @@ function Signup() {
     setLoading(true)
     setError('')
     try {
-      await signup(email.trim(), password, fullName.trim())
-      navigate('/profile')
+      await signup(email.trim(), password, fullName.trim(), role)
+      // Navigation is handled by useEffect when user context updates
     } catch (err) {
       setError(err.message || 'Failed to sign up')
     } finally {
@@ -72,6 +83,18 @@ function Signup() {
                 required
                 minLength={6}
               />
+            </div>
+            <div>
+              <label className='text-xs font-bold uppercase text-slate-500' htmlFor='role'>I am a</label>
+              <select
+                id='role'
+                value={role}
+                onChange={(event) => setRole(event.target.value)}
+                className='mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+              >
+                <option value='seeker'>Job Seeker</option>
+                <option value='recruiter'>Recruiter / Employer</option>
+              </select>
             </div>
             <button
               type='submit'

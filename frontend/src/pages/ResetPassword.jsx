@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import Loader from '../components/Loader.jsx'
 import { authApi } from '../api/authApi.js'
 
 function ResetPassword() {
-  const [searchParams] = useSearchParams()
-  const token = searchParams.get('token')
   const navigate = useNavigate()
 
   const [verifying, setVerifying] = useState(true)
-  const [tokenValid, setTokenValid] = useState(false)
-  const [email, setEmail] = useState('')
+  const [canResetPassword, setCanResetPassword] = useState(false)
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -20,30 +17,50 @@ function ResetPassword() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!token) {
-      setError('No reset token provided. Please request a new link.')
-      setVerifying(false)
-      return
-    }
+    let active = true
+    const hasRecoveryParams =
+      window.location.search.includes('code=') ||
+      window.location.hash.includes('type=recovery') ||
+      window.location.hash.includes('access_token=')
 
-    const checkToken = async () => {
+    const {
+      data: { subscription },
+    } = authApi.onAuthStateChange((event, session) => {
+      if (!active) return
+      if (event === 'PASSWORD_RECOVERY' || (hasRecoveryParams && session)) {
+        setCanResetPassword(true)
+        setError('')
+      }
+      setVerifying(false)
+    })
+
+    const checkSession = async () => {
       try {
-        const data = await authApi.verifyResetToken(token)
-        if (data.valid) {
-          setTokenValid(true)
-          setEmail(data.email || '')
+        const session = await authApi.getSession()
+        if (!active) return
+        if (hasRecoveryParams && session) {
+          setCanResetPassword(true)
         } else {
-          setError('Invalid or expired reset token. Please request a new link.')
+          setError('Invalid or expired reset link. Please request a new link.')
         }
       } catch (err) {
-        setError(err.message || 'Invalid or expired reset token. Please request a new link.')
+        if (active) {
+          setError(err.message || 'Invalid or expired reset link. Please request a new link.')
+        }
       } finally {
-        setVerifying(false)
+        if (active) {
+          setVerifying(false)
+        }
       }
     }
 
-    checkToken()
-  }, [token])
+    checkSession()
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const handleResetPassword = async (e) => {
     e.preventDefault()
@@ -63,7 +80,7 @@ function ResetPassword() {
     setError('')
     setSuccess('')
     try {
-      await authApi.resetPassword(token, password)
+      await authApi.resetPassword(password)
       setSuccess('Your password has been successfully reset!')
       setTimeout(() => {
         navigate('/login')
@@ -94,7 +111,7 @@ function ResetPassword() {
             </div>
           )}
 
-          {!tokenValid ? (
+          {!canResetPassword ? (
             <div className='mt-5'>
               <p className='text-sm text-slate-600 mb-4'>
                 The password reset link you used is invalid, expired, or has already been used.
@@ -109,17 +126,6 @@ function ResetPassword() {
           ) : (
             !success && (
               <form onSubmit={handleResetPassword} className='mt-5 grid gap-4'>
-                {email && (
-                  <div>
-                    <label className='text-xs font-bold uppercase text-slate-400'>Resetting Password For</label>
-                    <input
-                      type='text'
-                      value={email}
-                      disabled
-                      className='mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed'
-                    />
-                  </div>
-                )}
                 <div>
                   <label className='text-xs font-bold uppercase text-slate-500' htmlFor='password'>New Password</label>
                   <input

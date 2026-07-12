@@ -341,7 +341,7 @@ export const jobsApi = {
 
     // 1. Try to fetch from backend proxy
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    const proxyUrl = new URL(`${backendUrl}/api/jobs`)
+    const proxyUrl = new URL(`${backendUrl}/api/external-jobs`)
     if (filters.search) proxyUrl.searchParams.append('search', filters.search)
     if (filters.location) proxyUrl.searchParams.append('location', filters.location)
     if (filters.type) proxyUrl.searchParams.append('type', filters.type)
@@ -488,5 +488,37 @@ export const jobsApi = {
 
       return true
     })
+  },
+
+  async fetchPlatformJobs(filters = {}) {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+    try {
+      const response = await fetch(`${backendUrl}/api/jobs`)
+      if (!response.ok) throw new Error('Failed to fetch platform jobs')
+      const data = await response.json()
+      
+      const mappedJobs = data.map(j => ({
+        id: j.id,
+        title: j.title,
+        company: j.company?.name || 'Unknown Company',
+        companyLogo: j.company?.logo_url || '',
+        location: j.location,
+        salary: j.salary_range,
+        skills: extractSkillsFromText(Array.isArray(j.requirements) ? j.requirements.join(' ') : j.requirements),
+        type: j.employment_type || 'Full Time',
+        experience: 'Not specified',
+        postedDate: j.created_at ? j.created_at.split('T')[0] : '',
+        description: j.description,
+        qualifications: j.requirements ? [j.requirements] : [],
+        responsibilities: [],
+        apply_url: '', // Platform jobs use internal apply modal
+        isPlatformJob: true
+      }))
+      
+      return this.localFilter(mappedJobs, filters)
+    } catch (err) {
+      console.error(err)
+      return []
+    }
   },
 }

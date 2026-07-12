@@ -9,6 +9,7 @@ function Profile() {
   const [name, setName] = useState(user?.name || '')
   const [skillInput, setSkillInput] = useState('')
   const [selectedSkills, setSelectedSkills] = useState(user?.skills || [])
+  const [designation, setDesignation] = useState(user?.role === 'recruiter' ? (user?.skills?.[0] || '') : '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -34,7 +35,10 @@ function Profile() {
     setError('')
     setSuccessMsg('')
     try {
-      await updateProfile(name.trim(), selectedSkills)
+      const finalSkills = user?.role === 'recruiter' 
+        ? (designation.trim() ? [designation.trim()] : []) 
+        : selectedSkills;
+      await updateProfile(name.trim(), finalSkills)
       setSuccessMsg('Profile updated successfully!')
     } catch (err) {
       setError(err.message || 'Failed to update profile.')
@@ -70,49 +74,64 @@ function Profile() {
             required
           />
 
-          <p className='mt-5 text-sm font-semibold'>Skills</p>
-          <div className='mt-2 flex gap-2'>
-            <input
-              type='text'
-              placeholder='Type a skill and press Enter (e.g. React, Node.js)'
-              value={skillInput}
-              onChange={(e) => setSkillInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddSkill(e)
-                }
-              }}
-              className='flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm'
-            />
-            <button
-              type='button'
-              onClick={handleAddSkill}
-              className='rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white'
-            >
-              Add
-            </button>
-          </div>
-
-          <div className='mt-3 flex flex-wrap gap-2'>
-            {selectedSkills.map((skill) => (
-              <span
-                key={skill}
-                className='inline-flex items-center gap-1 rounded-md bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white'
-              >
-                {skill}
+          {user?.role === 'recruiter' ? (
+            <>
+              <p className='mt-5 text-sm font-semibold'>Designation</p>
+              <input
+                type='text'
+                placeholder='e.g. HR Manager, Talent Acquisition Specialist'
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                className='mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+              />
+            </>
+          ) : (
+            <>
+              <p className='mt-5 text-sm font-semibold'>Skills</p>
+              <div className='mt-2 flex gap-2'>
+                <input
+                  type='text'
+                  placeholder='Type a skill and press Enter (e.g. React, Node.js)'
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddSkill(e)
+                    }
+                  }}
+                  className='flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
                 <button
                   type='button'
-                  onClick={() => handleRemoveSkill(skill)}
-                  className='ml-1 text-slate-300 hover:text-white font-bold text-xs'
+                  onClick={handleAddSkill}
+                  className='rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white'
                 >
-                  &times;
+                  Add
                 </button>
-              </span>
-            ))}
-            {!selectedSkills.length && (
-              <p className='text-sm text-slate-500 italic'>No skills added yet.</p>
-            )}
-          </div>
+              </div>
+
+              <div className='mt-3 flex flex-wrap gap-2'>
+                {selectedSkills.map((skill) => (
+                  <span
+                    key={skill}
+                    className='inline-flex items-center gap-1 rounded-md bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white'
+                  >
+                    {skill}
+                    <button
+                      type='button'
+                      onClick={() => handleRemoveSkill(skill)}
+                      className='ml-1 text-slate-300 hover:text-white font-bold text-xs'
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+                {!selectedSkills.length && (
+                  <p className='text-sm text-slate-500 italic'>No skills added yet.</p>
+                )}
+              </div>
+            </>
+          )}
 
           <div className='mt-6 flex gap-3'>
             <button

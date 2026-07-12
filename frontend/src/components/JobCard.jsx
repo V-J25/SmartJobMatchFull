@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import ApplyModal from './ApplyModal.jsx'
 
 function JobCard({
   job,
@@ -18,6 +20,21 @@ function JobCard({
         : isApplied
           ? 'Applied'
           : 'Apply'
+
+  const [showModal, setShowModal] = useState(false)
+
+  const onApplyClick = () => {
+    if (job.isPlatformJob) {
+      setShowModal(true)
+    } else {
+      handleApplyJob(job)
+    }
+  }
+
+  const handleApplySuccess = () => {
+    setShowModal(false)
+    handleApplyJob(job) // Tracks it as applied in context
+  }
 
   return (
     <article className='flex h-full flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm'>
@@ -65,7 +82,7 @@ function JobCard({
         </button>
         <button
           type='button'
-          onClick={() => handleApplyJob(job)}
+          onClick={onApplyClick}
           disabled={isApplyDisabled}
           className='rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-emerald-300'
         >
@@ -77,6 +94,13 @@ function JobCard({
           </button>
         </Link>
       </div>
+      {showModal && (
+        <ApplyModal 
+          job={job} 
+          onClose={() => setShowModal(false)} 
+          onSuccess={handleApplySuccess} 
+        />
+      )}
     </article>
   )
 }

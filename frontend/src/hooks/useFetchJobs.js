@@ -6,8 +6,8 @@ const JOBS_CACHE_DURATION = 2 * 60 * 60 * 1000
 const jobsCache = new Map()
 const pendingJobsRequests = new Map()
 
-function getJobs(searchQuery) {
-  const cacheKey = searchQuery.trim().toLowerCase()
+function getJobs(searchQuery, source = 'external') {
+  const cacheKey = `${source}:${searchQuery.trim().toLowerCase()}`
   const cached = jobsCache.get(cacheKey)
   const isCacheValid = cached && Date.now() - cached.createdAt < JOBS_CACHE_DURATION
 
@@ -16,7 +16,11 @@ function getJobs(searchQuery) {
   }
 
   if (!pendingJobsRequests.has(cacheKey)) {
-    const request = jobsApi.fetchJobs({ search: searchQuery })
+    const requestPromise = source === 'platform' 
+      ? jobsApi.fetchPlatformJobs({ search: searchQuery })
+      : jobsApi.fetchJobs({ search: searchQuery })
+
+    const request = requestPromise
       .then((data) => {
         jobsCache.set(cacheKey, { jobs: data, createdAt: Date.now() })
         return data
@@ -30,7 +34,7 @@ function getJobs(searchQuery) {
   return pendingJobsRequests.get(cacheKey)
 }
 
-function useFetchJobs(searchQuery = '') {
+function useFetchJobs(searchQuery = '', source = 'external') {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -42,7 +46,7 @@ function useFetchJobs(searchQuery = '') {
     const loadJobs = async () => {
       setLoading(true)
       try {
-        const data = await getJobs(searchQuery)
+        const data = await getJobs(searchQuery, source)
         if (active) {
           setJobs(data)
           setResolvedSearchQuery(searchQuery)
@@ -64,7 +68,7 @@ function useFetchJobs(searchQuery = '') {
     return () => {
       active = false
     }
-  }, [searchQuery])
+  }, [searchQuery, source])
 
   return { jobs, loading, error, resolvedSearchQuery }
 }

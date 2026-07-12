@@ -15,6 +15,13 @@ import ResetPassword from '../pages/ResetPassword.jsx'
 import { AuthContext } from '../context/authContextValue.js'
 import Loader from '../components/Loader.jsx'
 
+// Recruiter Components
+import RecruiterDashboard from '../pages/recruiter/RecruiterDashboard.jsx'
+import RecruiterJobs from '../pages/recruiter/RecruiterJobs.jsx'
+import PostJob from '../pages/recruiter/PostJob.jsx'
+import RecruiterCompany from '../pages/recruiter/RecruiterCompany.jsx'
+import RecruiterApplicants from '../pages/recruiter/RecruiterApplicants.jsx'
+
 function AppRoutes() {
   const { loading } = useContext(AuthContext)
 
@@ -30,7 +37,7 @@ function AppRoutes() {
       <Route
         path='/dashboard'
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['seeker']}>
             <Dashboard />
           </ProtectedRoute>
         }
@@ -38,7 +45,7 @@ function AppRoutes() {
       <Route
         path='/saved'
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['seeker']}>
             <SavedJobs />
           </ProtectedRoute>
         }
@@ -46,7 +53,7 @@ function AppRoutes() {
       <Route
         path='/tracker'
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['seeker']}>
             <Tracker />
           </ProtectedRoute>
         }
@@ -56,6 +63,48 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Recruiter Routes */}
+      <Route
+        path='/recruiter/dashboard'
+        element={
+          <ProtectedRoute allowedRoles={['recruiter']}>
+            <RecruiterDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/recruiter/jobs'
+        element={
+          <ProtectedRoute allowedRoles={['recruiter']}>
+            <RecruiterJobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/recruiter/jobs/post'
+        element={
+          <ProtectedRoute allowedRoles={['recruiter']}>
+            <PostJob />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/recruiter/company'
+        element={
+          <ProtectedRoute allowedRoles={['recruiter']}>
+            <RecruiterCompany />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/recruiter/jobs/:id/applicants'
+        element={
+          <ProtectedRoute allowedRoles={['recruiter']}>
+            <RecruiterApplicants />
           </ProtectedRoute>
         }
       />

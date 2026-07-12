@@ -1,11 +1,14 @@
 import "dotenv/config";
 import express from "express";
 import authRouter from "./routes/authRoutes.js";
+import companyRouter from "./routes/companyRoutes.js";
+import jobRouter from "./routes/jobRoutes.js";
 
 const vpp = express();
 
 // Middleware
-vpp.use(express.json());
+vpp.use(express.json({ limit: '50mb' }));
+vpp.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // CORS Middleware to allow requests from the frontend (localhost:5173 / production domains)
 vpp.use((req, res, next) => {
@@ -22,7 +25,7 @@ vpp.use((req, res, next) => {
 });
 
 // Proxy route for JSearch API
-vpp.get("/api/jobs", async (req, res) => {
+vpp.get("/api/external-jobs", async (req, res) => {
   try {
     const { search, location, type } = req.query;
     const rapidApiKey = process.env.RAPIDAPI_KEY || req.get("x-rapidapi-key");
@@ -106,5 +109,7 @@ vpp.get("/api/jobs", async (req, res) => {
 
 // Mount authentication router
 vpp.use("/api/auth", authRouter);
+vpp.use("/api/companies", companyRouter);
+vpp.use("/api/jobs", jobRouter);
 
 export const app = vpp;
