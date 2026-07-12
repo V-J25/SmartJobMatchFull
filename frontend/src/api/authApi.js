@@ -55,6 +55,12 @@ export const authApi = {
     return session
   },
 
+  async exchangeCodeForSession(code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) throw error
+    return data
+  },
+
   async getUserRole(userId) {
     const { data, error } = await supabase
       .from('profiles')

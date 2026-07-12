@@ -36,11 +36,23 @@ function ResetPassword() {
 
     const checkSession = async () => {
       try {
+        const urlParams = new URLSearchParams(window.location.search)
+        const code = urlParams.get('code')
+
+        if (code) {
+          await authApi.exchangeCodeForSession(code)
+          // Clean the code parameter from the URL bar to avoid reuse
+          const newUrl = window.location.pathname
+          window.history.replaceState({}, document.title, newUrl)
+        }
+
         const session = await authApi.getSession()
         if (!active) return
-        if (hasRecoveryParams && session) {
+
+        if (session) {
           setCanResetPassword(true)
-        } else {
+          setError('')
+        } else if (!hasRecoveryParams) {
           setError('Invalid or expired reset link. Please request a new link.')
         }
       } catch (err) {
