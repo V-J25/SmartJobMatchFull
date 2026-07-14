@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar.jsx'
 import Loader from '../components/Loader.jsx'
 import { AuthContext } from '../context/authContextValue.js'
 import { JobContext } from '../context/jobContextValue.js'
-import { jobsApi } from '../api/jobsApi.js'
+import { jobsApi, FALLBACK_JOBS } from '../api/jobsApi.js'
 import getRecommendedJobs from '../utils/recommendationLogic.js'
 
 const RECS_CACHE_DURATION = 2 * 60 * 60 * 1000
@@ -47,7 +47,18 @@ function Dashboard() {
         if (!pendingRecsRequests.has(cacheKey)) {
           const fetchPromise = (async () => {
             const query = userSkills.join(' ')
-            const jobs = await jobsApi.fetchJobs({ search: query, isRecommendation: true })
+            let jobs = []
+            try {
+              jobs = await jobsApi.fetchJobs({ search: query, isRecommendation: true })
+            } catch (err) {
+              console.warn('Failed to fetch external recommended jobs, falling back:', err)
+            }
+
+            if (!jobs || jobs.length === 0) {
+              const platformJobs = await jobsApi.fetchPlatformJobs({ isRecommendation: true }).catch(() => [])
+              jobs = [...platformJobs, ...FALLBACK_JOBS]
+            }
+
             return getRecommendedJobs(jobs, userSkills, 3)
           })()
 
