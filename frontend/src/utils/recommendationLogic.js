@@ -16,7 +16,7 @@ export function getMatchScore(job, userSkills = []) {
 export function getRecommendedJobs(jobs, skills, limit = 3) {
   return jobs
     .map((job) => ({ ...job, matchScore: getMatchScore(job, skills) }))
-    .filter((job) => job.matchScore > 50)
+    .filter((job) => job.matchScore > 0)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, limit);
 }

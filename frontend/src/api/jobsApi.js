@@ -430,7 +430,7 @@ export const jobsApi = {
       const jobSkills = job.skills.map((s) => s.toLowerCase())
 
       // 1. Search term (matches title, company, description, or skills)
-      if (search) {
+      if (search && !filters.isRecommendation) {
         const matchesSearch =
           jobTitle.includes(search) ||
           jobCompany.includes(search) ||

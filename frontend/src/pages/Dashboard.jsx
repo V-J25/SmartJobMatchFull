@@ -29,7 +29,7 @@ function Dashboard() {
       setLoadingRecs(true)
       try {
         const query = userSkills.join(' ')
-        const jobs = await jobsApi.fetchJobs({ search: query })
+        const jobs = await jobsApi.fetchJobs({ search: query, isRecommendation: true })
         const topRecs = getRecommendedJobs(jobs, userSkills, 3)
         if (active) {
           setRecommendedJobs(topRecs)
@@ -68,7 +68,9 @@ function Dashboard() {
           {loadingRecs && <Loader message='Finding recommendations matching your skills...' />}
           {!loadingRecs && !recommendedJobs.length && (
             <p className='mt-4 rounded-md bg-slate-50 p-4 text-sm text-slate-600'>
-              Add skills in your profile to see recommendations.
+              {!userSkills.length
+                ? 'Add skills in your profile to see recommendations.'
+                : 'No job recommendations found matching your skills. Try adding more skills in your profile.'}
             </p>
           )}
           {!loadingRecs && recommendedJobs.length > 0 && (
