@@ -7,6 +7,10 @@ import { JobContext } from '../context/jobContextValue.js'
 import { jobsApi } from '../api/jobsApi.js'
 import getRecommendedJobs from '../utils/recommendationLogic.js'
 
+const RECS_CACHE_DURATION = 2 * 60 * 60 * 1000
+const recsCache = new Map()
+const pendingRecsRequests = new Map()
+
 function Dashboard() {
   const { user } = useContext(AuthContext)
   const { savedJobs, appliedJobs } = useContext(JobContext)
@@ -25,14 +29,42 @@ function Dashboard() {
     }
 
     let active = true
-    const fetchRecommendations = async () => {
+    const cacheKey = [...userSkills].sort().join(',')
+
+    const loadRecommendations = async () => {
       setLoadingRecs(true)
       try {
-        const query = userSkills.join(' ')
-        const jobs = await jobsApi.fetchJobs({ search: query, isRecommendation: true })
-        const topRecs = getRecommendedJobs(jobs, userSkills, 3)
+        const cached = recsCache.get(cacheKey)
+        const isCacheValid = cached && Date.now() - cached.createdAt < RECS_CACHE_DURATION
+        if (isCacheValid) {
+          if (active) {
+            setRecommendedJobs(cached.jobs)
+            setLoadingRecs(false)
+          }
+          return
+        }
+
+        if (!pendingRecsRequests.has(cacheKey)) {
+          const fetchPromise = (async () => {
+            const query = userSkills.join(' ')
+            const jobs = await jobsApi.fetchJobs({ search: query, isRecommendation: true })
+            return getRecommendedJobs(jobs, userSkills, 3)
+          })()
+
+          const request = fetchPromise
+            .then((data) => {
+              recsCache.set(cacheKey, { jobs: data, createdAt: Date.now() })
+              return data
+            })
+            .finally(() => {
+              pendingRecsRequests.delete(cacheKey)
+            })
+          pendingRecsRequests.set(cacheKey, request)
+        }
+
+        const data = await pendingRecsRequests.get(cacheKey)
         if (active) {
-          setRecommendedJobs(topRecs)
+          setRecommendedJobs(data)
         }
       } catch (err) {
         console.error('Error fetching recommended jobs:', err)
@@ -43,7 +75,7 @@ function Dashboard() {
       }
     }
 
-    fetchRecommendations()
+    loadRecommendations()
 
     return () => {
       active = false
