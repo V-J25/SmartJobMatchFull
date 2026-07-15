@@ -353,6 +353,12 @@ export const jobsApi = {
         method: 'GET',
         headers: rapidApiKey ? { 'x-rapidapi-key': rapidApiKey } : {},
       })
+      if (response.status === 429) {
+        const errJson = await response.json().catch(() => ({}))
+        const limitError = new Error(errJson.error || 'Too many requests. Please try again after 1 hour.')
+        limitError.isRateLimit = true
+        throw limitError
+      }
       if (response.ok) {
         const json = await response.json()
         const jobs = deduplicateJobs((json.data || []).map(mapJSearchToJob))
@@ -360,6 +366,9 @@ export const jobsApi = {
       }
       throw new Error(`Proxy returned status ${response.status}`)
     } catch (proxyError) {
+      if (proxyError.isRateLimit) {
+        throw proxyError
+      }
       console.warn('Backend proxy fetch failed, attempting direct JSearch request:', proxyError.message)
 
       // 2. Direct client-side API call fallback (if key is configured on frontend)
@@ -494,6 +503,10 @@ export const jobsApi = {
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
     try {
       const response = await fetch(`${backendUrl}/api/jobs`)
+      if (response.status === 429) {
+        const errJson = await response.json().catch(() => ({}))
+        throw new Error(errJson.error || 'Too many requests. Please try again after 1 hour.')
+      }
       if (!response.ok) throw new Error('Failed to fetch platform jobs')
       const data = await response.json()
       

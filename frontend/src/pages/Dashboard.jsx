@@ -16,6 +16,7 @@ function Dashboard() {
   const { savedJobs, appliedJobs } = useContext(JobContext)
   const [recommendedJobs, setRecommendedJobs] = useState([])
   const [loadingRecs, setLoadingRecs] = useState(false)
+  const [errorRecs, setErrorRecs] = useState('')
 
   const userSkills = useMemo(
     () => (user?.skills?.length ? user.skills : []),
@@ -33,6 +34,7 @@ function Dashboard() {
 
     const loadRecommendations = async () => {
       setLoadingRecs(true)
+      setErrorRecs('')
       try {
         const cached = recsCache.get(cacheKey)
         const isCacheValid = cached && Date.now() - cached.createdAt < RECS_CACHE_DURATION
@@ -48,14 +50,33 @@ function Dashboard() {
           const fetchPromise = (async () => {
             const query = userSkills.join(' ')
             let jobs = []
+            let isRateLimited = false
+            let rateLimitErr = null
+
             try {
               jobs = await jobsApi.fetchJobs({ search: query, isRecommendation: true })
             } catch (err) {
-              console.warn('Failed to fetch external recommended jobs, falling back:', err)
+              const msg = err?.message || ''
+              if (msg.includes('Too many requests') || err?.isRateLimit) {
+                isRateLimited = true
+                rateLimitErr = err
+              } else {
+                console.warn('Failed to fetch external recommended jobs, falling back:', err)
+              }
+            }
+
+            if (isRateLimited) {
+              throw rateLimitErr
             }
 
             if (!jobs || jobs.length === 0) {
-              const platformJobs = await jobsApi.fetchPlatformJobs({ isRecommendation: true }).catch(() => [])
+              const platformJobs = await jobsApi.fetchPlatformJobs({ isRecommendation: true }).catch((err) => {
+                const msg = err?.message || ''
+                if (msg.includes('Too many requests')) {
+                  throw err
+                }
+                return []
+              })
               jobs = [...platformJobs, ...FALLBACK_JOBS]
             }
 
@@ -79,6 +100,10 @@ function Dashboard() {
         }
       } catch (err) {
         console.error('Error fetching recommended jobs:', err)
+        if (active) {
+          setErrorRecs(err.message || 'Error loading recommendations.')
+          setRecommendedJobs([])
+        }
       } finally {
         if (active) {
           setLoadingRecs(false)
@@ -109,14 +134,19 @@ function Dashboard() {
         <section className='mt-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm'>
           <h2 className='text-xl font-bold'>Recommended Jobs</h2>
           {loadingRecs && <Loader message='Finding recommendations matching your skills...' />}
-          {!loadingRecs && !recommendedJobs.length && (
+          {errorRecs && (
+            <p className='mt-4 rounded-md bg-red-50 p-4 text-sm text-red-700'>
+              {errorRecs}
+            </p>
+          )}
+          {!loadingRecs && !errorRecs && !recommendedJobs.length && (
             <p className='mt-4 rounded-md bg-slate-50 p-4 text-sm text-slate-600'>
               {!userSkills.length
                 ? 'Add skills in your profile to see recommendations.'
                 : 'No job recommendations found matching your skills. Try adding more skills in your profile.'}
             </p>
           )}
-          {!loadingRecs && recommendedJobs.length > 0 && (
+          {!loadingRecs && !errorRecs && recommendedJobs.length > 0 && (
             <div className='mt-4 grid gap-3'>
               {recommendedJobs.map((job) => (
                 <div key={job.id} className='flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-100 p-4'>

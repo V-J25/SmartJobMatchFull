@@ -1,11 +1,12 @@
 import express from 'express';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 import supabase from '../config/supabase.js';
+import { jobApiLimiter } from '../middleware/rateLimitMiddleware.js';
 
 const router = express.Router();
 
 // GET all active platform jobs (for seekers)
-router.get('/', async (req, res) => {
+router.get('/', jobApiLimiter, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('jobs')

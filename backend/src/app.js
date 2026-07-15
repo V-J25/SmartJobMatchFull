@@ -3,8 +3,12 @@ import express from "express";
 import authRouter from "./routes/authRoutes.js";
 import companyRouter from "./routes/companyRoutes.js";
 import jobRouter from "./routes/jobRoutes.js";
+import { jobApiLimiter } from "./middleware/rateLimitMiddleware.js";
 
 const vpp = express();
+
+// Enable trusting reverse proxy headers (for Render deployment IP rate limiting)
+vpp.set("trust proxy", 1);
 
 // Middleware
 vpp.use(express.json({ limit: "50mb" }));
@@ -28,7 +32,7 @@ vpp.use((req, res, next) => {
 });
 
 // Proxy route for JSearch API
-vpp.get("/api/external-jobs", async (req, res) => {
+vpp.get("/api/external-jobs", jobApiLimiter, async (req, res) => {
   try {
     const { search, location, type } = req.query;
     const rapidApiKey = process.env.RAPIDAPI_KEY || req.get("x-rapidapi-key");
