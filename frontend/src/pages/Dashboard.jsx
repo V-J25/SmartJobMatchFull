@@ -7,7 +7,7 @@ import { JobContext } from '../context/jobContextValue.js'
 import { jobsApi, FALLBACK_JOBS } from '../api/jobsApi.js'
 import getRecommendedJobs from '../utils/recommendationLogic.js'
 
-const RECS_CACHE_DURATION = 2 * 60 * 60 * 1000
+const RECS_CACHE_DURATION = 10 * 60 * 1000
 const recsCache = new Map()
 const pendingRecsRequests = new Map()
 

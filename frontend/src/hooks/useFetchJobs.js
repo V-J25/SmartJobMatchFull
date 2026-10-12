@@ -1,76 +1,78 @@
-import { useEffect, useState } from 'react'
-import { jobsApi } from '../api/jobsApi'
+import { useEffect, useState } from "react";
+import { jobsApi } from "../api/jobsApi";
 
-const JOBS_CACHE_DURATION = 2 * 60 * 60 * 1000
+const JOBS_CACHE_DURATION = 10 * 60 * 1000;
 
-const jobsCache = new Map()
-const pendingJobsRequests = new Map()
+const jobsCache = new Map();
+const pendingJobsRequests = new Map();
 
-function getJobs(searchQuery, source = 'external') {
-  const cacheKey = `${source}:${searchQuery.trim().toLowerCase()}`
-  const cached = jobsCache.get(cacheKey)
-  const isCacheValid = cached && Date.now() - cached.createdAt < JOBS_CACHE_DURATION
+function getJobs(searchQuery, source = "external") {
+  const cacheKey = `${source}:${searchQuery.trim().toLowerCase()}`;
+  const cached = jobsCache.get(cacheKey);
+  const isCacheValid =
+    cached && Date.now() - cached.createdAt < JOBS_CACHE_DURATION;
 
   if (isCacheValid) {
-    return Promise.resolve(cached.jobs)
+    return Promise.resolve(cached.jobs);
   }
 
   if (!pendingJobsRequests.has(cacheKey)) {
-    const requestPromise = source === 'platform' 
-      ? jobsApi.fetchPlatformJobs({ search: searchQuery })
-      : jobsApi.fetchJobs({ search: searchQuery })
+    const requestPromise =
+      source === "platform"
+        ? jobsApi.fetchPlatformJobs({ search: searchQuery })
+        : jobsApi.fetchJobs({ search: searchQuery });
 
     const request = requestPromise
       .then((data) => {
-        jobsCache.set(cacheKey, { jobs: data, createdAt: Date.now() })
-        return data
+        jobsCache.set(cacheKey, { jobs: data, createdAt: Date.now() });
+        return data;
       })
       .finally(() => {
-        pendingJobsRequests.delete(cacheKey)
-      })
-    pendingJobsRequests.set(cacheKey, request)
+        pendingJobsRequests.delete(cacheKey);
+      });
+    pendingJobsRequests.set(cacheKey, request);
   }
 
-  return pendingJobsRequests.get(cacheKey)
+  return pendingJobsRequests.get(cacheKey);
 }
 
-function useFetchJobs(searchQuery = '', source = 'external') {
-  const [jobs, setJobs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [resolvedSearchQuery, setResolvedSearchQuery] = useState('')
+function useFetchJobs(searchQuery = "", source = "external") {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [resolvedSearchQuery, setResolvedSearchQuery] = useState("");
 
   useEffect(() => {
-    let active = true
+    let active = true;
 
     const loadJobs = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const data = await getJobs(searchQuery, source)
+        const data = await getJobs(searchQuery, source);
         if (active) {
-          setJobs(data)
-          setResolvedSearchQuery(searchQuery)
-          setError('')
+          setJobs(data);
+          setResolvedSearchQuery(searchQuery);
+          setError("");
         }
       } catch (err) {
         if (active) {
-          setError(err.message || 'Unable to load jobs.')
+          setError(err.message || "Unable to load jobs.");
         }
       } finally {
         if (active) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    loadJobs()
+    loadJobs();
 
     return () => {
-      active = false
-    }
-  }, [searchQuery, source])
+      active = false;
+    };
+  }, [searchQuery, source]);
 
-  return { jobs, loading, error, resolvedSearchQuery }
+  return { jobs, loading, error, resolvedSearchQuery };
 }
 
-export default useFetchJobs
+export default useFetchJobs;
