@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { backendRequest } from "./apiClient";
 
 export const authApi = {
   async signup(email, password, fullName, role = "seeker") {
@@ -8,13 +9,24 @@ export const authApi = {
       options: {
         data: {
           full_name: fullName,
-          role: role, // This securely attaches the role to the auth metadata only
+          role: role,
         },
       },
     });
     if (error) throw error;
 
-    // REMOVED: The manual profile update block
+    // Ensure the profile role is updated since DB triggers may default to 'seeker'
+    // (done by the backend; requires an active session, i.e. no pending email confirmation)
+    if (data?.session?.access_token) {
+      try {
+        await backendRequest("/api/auth/sync-role", {
+          method: "POST",
+          token: data.session.access_token,
+        });
+      } catch (syncError) {
+        console.warn("Role sync after signup failed:", syncError.message);
+      }
+    }
 
     return data;
   },
@@ -26,10 +38,21 @@ export const authApi = {
     });
     if (error) throw error;
 
-    // REMOVED: The manual profile update block
+    // Auto-sync role on login to fix any DB default mismatched roles
+    if (data?.session?.access_token && data.user?.user_metadata?.role) {
+      try {
+        await backendRequest("/api/auth/sync-role", {
+          method: "POST",
+          token: data.session.access_token,
+        });
+      } catch (syncError) {
+        console.warn("Role sync after login failed:", syncError.message);
+      }
+    }
 
     return data;
   },
+
   async logout() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -50,14 +73,13 @@ export const authApi = {
     return data;
   },
 
-  async getUserRole(userId) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .single();
-    if (error) return "seeker"; // fallback
-    return data.role;
+  async getUserRole() {
+    try {
+      const data = await backendRequest("/api/auth/role");
+      return data.role;
+    } catch {
+      return "seeker"; // fallback
+    }
   },
 
   onAuthStateChange(callback) {

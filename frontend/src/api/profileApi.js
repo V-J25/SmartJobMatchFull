@@ -1,27 +1,18 @@
-import { supabase } from './supabaseClient'
+import { backendRequest } from "./apiClient";
 
+// The backend identifies the user from the access token, so userId is not sent.
 export const profileApi = {
-  async getProfile(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    if (error) throw error
-    return data
+  async getProfile() {
+    return await backendRequest("/api/profile");
   },
 
-  async updateProfile(userId, fullName, skills) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({
+  async updateProfile(_userId, fullName, skills) {
+    return await backendRequest("/api/profile", {
+      method: "PUT",
+      body: {
         full_name: fullName,
         skills: skills || [],
-      })
-      .eq('id', userId)
-      .select()
-      .single()
-    if (error) throw error
-    return data
+      },
+    });
   },
-}
+};
