@@ -3,6 +3,10 @@ import express from "express";
 import authRouter from "./routes/authRoutes.js";
 import companyRouter from "./routes/companyRoutes.js";
 import jobRouter from "./routes/jobRoutes.js";
+import profileRouter from "./routes/profileRoutes.js";
+import savedJobRouter from "./routes/savedJobRoutes.js";
+import savedSearchRouter from "./routes/savedSearchRoutes.js";
+import trackerRouter from "./routes/trackerRoutes.js";
 import { jobApiLimiter } from "./middleware/rateLimitMiddleware.js";
 
 const vpp = express();
@@ -115,5 +119,9 @@ vpp.get("/api/external-jobs", jobApiLimiter, async (req, res) => {
 vpp.use("/api/auth", authRouter);
 vpp.use("/api/companies", companyRouter);
 vpp.use("/api/jobs", jobRouter);
+vpp.use("/api/profile", profileRouter);
+vpp.use("/api/saved-jobs", savedJobRouter);
+vpp.use("/api/saved-searches", savedSearchRouter);
+vpp.use("/api/tracker", trackerRouter);
 
 export const app = vpp;
